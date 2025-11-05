@@ -1,0 +1,16 @@
+pystac-client
+stackstac
+rioxarray
+rasterio
+numpy
+pandas
+geopandas
+shapely
+matplotlib
+osmnx
+scipy
+click
+tqdm
+xarray
+affine
+requests

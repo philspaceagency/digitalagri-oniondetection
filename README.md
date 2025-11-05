@@ -1,2 +1,12 @@
-# digitalagri_oniondetection
-This repo contains a modular, end-to-end Python pipeline of detecting onion crop in the Philippines using Sentinel 1, Sentinel 2 and other readily available satellite imagery.
+# Onion Detection Pipeline
+
+This repo contains a modular, end-to-end Python pipeline that:
+
+1. Downloads Sentinel-2 (optical) and Sentinel-1 (VV/VH) tiles via STAC;
+2. Computes optical indices (NDVI, NDWI, NDSI, EVI, NDRE, SAVI, GNDVI, ClI), and a B7_B8_B8A average band;
+3. Downloads/loads DEM (SRTM) and derives Slope, Roughness, and TPI;
+4. Downloads road network from OpenStreetMap and rasterizes a road mask;
+5. Applies the threshold rules to produce a final binary GeoTIFF (1 = onion, 0 = not onion);
+6. Exports visualization and final TIFF.
+
+See `scripts/` for the Python code and `requirements.txt` for dependencies.
