@@ -11,7 +11,24 @@ This repo contains a modular, end-to-end Python pipeline that:
 
 See `scripts/` for the Python code and `requirements.txt` for dependencies.
 
-## Brief Introduction
+## Prerequisites
+Source codes were written using Python 3.9 and use the following libraries and files:
+- pystac-client
+- stackstac
+- rioxarray
+- rasterio
+- numpy
+- pandas
+- geopandas
+- shapely
+- matplotlib
+- osmnx
+- scipy
+- click
+- tqdm
+- xarray
+- affine
+- requests
 
 ## Methodology
 
