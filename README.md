@@ -1,4 +1,4 @@
-# Onion Detection Pipeline
+# Digital Agri Phase 1: Onion Detection Pipeline
 
 This repo contains a modular, end-to-end Python pipeline that:
 
@@ -10,3 +10,11 @@ This repo contains a modular, end-to-end Python pipeline that:
 6. Exports visualization and final TIFF.
 
 See `scripts/` for the Python code and `requirements.txt` for dependencies.
+
+## Brief Introduction
+
+## Methodology
+
+## Scope and Limitations
+
+## About the Authors
