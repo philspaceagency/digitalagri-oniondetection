@@ -2,7 +2,7 @@
     01_stac_data_prep.py
 
     Processes:
-    - Loads shapefile using GADM
+    - Loads shapefile from /data folder
     - creates stac for Sentinel-1 and Sentinel-2
     - clips created stac within shapefile 
 """ 
@@ -12,6 +12,13 @@ import geopandas as gpd
 from shapely.geometry import box
 from pystac_client import Client
 
+def load_aoi_shapefile():
+    """Load AOI shapefile from data/AOI/bongabon_aoi.shp and return GeoDataFrame and bounds."""
+    aoi_path = "data/AOI/bongabon_aoi.shp"
+    gdf = gpd.read_file(aoi_path)
+    print(f"✅ AOI shapefile loaded: {aoi_path}")
+    print(f"Bounds: {gdf.total_bounds}")
+    return gdf, gdf.total_bounds
 
 STAC_API = "https://earth-search.aws.element84.com/v1"
 
@@ -90,32 +97,44 @@ def search_sentinel1(bounds, start_date, end_date):
     return items
 
 def main():
-    parser = argparse.ArgumentParser(description="STAC download automation")
-    parser.add_argument("--province", type=str, required=True)
+
+    parser = argparse.ArgumentParser(description="STAC download automation (AOI only)")
     parser.add_argument("--start", type=str, required=True)
     parser.add_argument("--end", type=str, required=True)
     parser.add_argument("--cloud", type=int, default=20)
-
     args = parser.parse_args()
 
-    province = load_province_shapefile(args.province)
-    tiles = get_tiles(province)
+    # Load AOI shapefile and get tiles
+    aoi_gdf, aoi_bounds = load_aoi_shapefile()
+    tiles = get_tiles(aoi_gdf)
 
     s2_list = []
     s1_list = []
 
     for i, tile in enumerate(tiles):
         print(f"\n📌 Tile {i+1}/{len(tiles)}...")
-
         s2_items = search_sentinel2(tile.bounds, args.start, args.end, args.cloud)
         s1_items = search_sentinel1(tile.bounds, args.start, args.end)
-
         s2_list.extend(s2_items)
         s1_list.extend(s1_items)
 
     print("\n🎯 RESULTS SUMMARY")
     print(f"🟦 Sentinel-2 TOTAL: {len(set([i.id for i in s2_list]))}")
     print(f"⬛ Sentinel-1 TOTAL: {len(set([i.id for i in s1_list]))}")
+
+    # Print acquisition dates for Sentinel-2
+    print("\nSentinel-2 acquisition dates:")
+    for item in s2_list:
+        date = getattr(item, 'datetime', None)
+        if date:
+            print(date)
+
+    # Print acquisition dates for Sentinel-1
+    print("\nSentinel-1 acquisition dates:")
+    for item in s1_list:
+        date = getattr(item, 'datetime', None)
+        if date:
+            print(date)
 
 
 if __name__ == "__main__":
