@@ -1,49 +1,38 @@
+"""01_stac_data_prep.py
+
+Load AOI from `data/AOI/bongabon_aoi.shp`, search STAC for Sentinel-2 and Sentinel-1
+items that intersect the AOI and write a meta JSON usable by
+`scripts/02_compute_indices_and_terrain.py`.
+
+Optional `--run` will invoke `02_compute_indices_and_terrain.py` with the
+generated meta file.
 """
-    01_stac_data_prep.py
-
-    Processes:
-    - Loads shapefile from /data folder
-    - creates stac for Sentinel-1 and Sentinel-2
-    - clips created stac within shapefile 
-""" 
-
 import argparse
-import geopandas as gpd
-from shapely.geometry import box
-from pystac_client import Client
+import json
+from pathlib import Path
 
-def load_aoi_shapefile():
-    """Load AOI shapefile from data/AOI/bongabon_aoi.shp and return GeoDataFrame and bounds."""
-    aoi_path = "data/AOI/bongabon_aoi.shp"
-    gdf = gpd.read_file(aoi_path)
-    print(f"✅ AOI shapefile loaded: {aoi_path}")
-    print(f"Bounds: {gdf.total_bounds}")
-    return gdf, gdf.total_bounds
+import geopandas as gpd
+from shapely.geometry import box, mapping
+from pystac_client import Client
+import subprocess
+import sys
+
 
 STAC_API = "https://earth-search.aws.element84.com/v1"
 
 
-def load_province_shapefile(province_name: str):
-    print(f"🔍 Loading province boundary for: {province_name}")
-
-    gdf = gpd.read_file(
-        "https://geodata.ucdavis.edu/gadm/gadm4.1/gpkg/gadm41_PHL.gpkg",
-        layer="ADM_ADM_2"
-    )
-
-    province_name = province_name.upper().strip()
-    gdf["NAME_1"] = gdf["NAME_1"].str.upper().str.strip()
-    selected = gdf[gdf["NAME_1"] == province_name]
-
-    if selected.empty:
-        raise ValueError(f"❌ Province '{province_name}' not found!")
-
-    print("✅ Province loaded successfully!")
-    return selected.to_crs(4326)
+def load_aoi_shapefile(path: str = "data/AOI/bongabon_aoi.shp"):
+    p = Path(path)
+    if not p.exists():
+        raise FileNotFoundError(f"AOI shapefile not found: {p}")
+    gdf = gpd.read_file(str(p)).to_crs(4326)
+    print(f"✅ AOI shapefile loaded: {p}")
+    print(f"Bounds: {gdf.total_bounds}")
+    return gdf
 
 
-def get_tiles(province_gdf, resolution=1.0):
-    bounds = province_gdf.total_bounds
+def get_tiles(aoi_gdf, resolution=1.0):
+    bounds = aoi_gdf.total_bounds
     minx, miny, maxx, maxy = bounds
 
     tiles = []
@@ -52,7 +41,7 @@ def get_tiles(province_gdf, resolution=1.0):
         y = miny
         while y < maxy:
             tile = box(x, y, x + resolution, y + resolution)
-            if province_gdf.intersects(tile).any():
+            if aoi_gdf.intersects(tile).any():
                 tiles.append(tile)
             y += resolution
         x += resolution
@@ -64,14 +53,12 @@ def get_tiles(province_gdf, resolution=1.0):
 def search_sentinel2(bounds, start_date, end_date, cloud_cover):
     client = Client.open(STAC_API)
     bbox = list(bounds)
-
     search = client.search(
         collections=["sentinel-2-l2a"],
         bbox=bbox,
         datetime=f"{start_date}/{end_date}",
-        query={"eo:cloud_cover": {"lt": cloud_cover}}
+        query={"eo:cloud_cover": {"lt": cloud_cover}},
     )
-
     items = list(search.items())
     print(f"🟦 Sentinel-2 found: {len(items)} items")
     return items
@@ -80,7 +67,6 @@ def search_sentinel2(bounds, start_date, end_date, cloud_cover):
 def search_sentinel1(bounds, start_date, end_date):
     client = Client.open(STAC_API)
     bbox = list(bounds)
-
     search = client.search(
         collections=["sentinel-1-grd"],
         bbox=bbox,
@@ -88,24 +74,40 @@ def search_sentinel1(bounds, start_date, end_date):
         query={
             "sar:instrument_mode": {"eq": "IW"},
             "sar:product_type": {"eq": "GRD"},
-            "sar:polarizations": {"intersects": ["VV", "VH"]}
-        }
+            "sar:polarizations": {"intersects": ["VV", "VH"]},
+        },
     )
-
     items = list(search.items())
     print(f"⬛ Sentinel-1 found: {len(items)} items")
     return items
 
-def main():
 
+def write_meta(aoi_gdf, s2_items, s1_items, start, end, out_dir: Path):
+    out_dir.mkdir(parents=True, exist_ok=True)
+    meta = {
+        "province": "AOI",
+        "start": start,
+        "end": end,
+        "geometry": mapping(aoi_gdf.unary_union),
+        "sentinel2_items": [it.to_dict() for it in s2_items],
+        "sentinel1_items": [it.to_dict() for it in s1_items],
+    }
+    out_path = out_dir / f"meta_AOI_{start}_{end}.json"
+    with open(out_path, "w") as fh:
+        json.dump(meta, fh)
+    print(f"✅ Wrote meta: {out_path}")
+    return out_path
+
+
+def main():
     parser = argparse.ArgumentParser(description="STAC download automation (AOI only)")
     parser.add_argument("--start", type=str, required=True)
     parser.add_argument("--end", type=str, required=True)
     parser.add_argument("--cloud", type=int, default=20)
+    parser.add_argument("--run", action="store_true", help="Run scripts/02_compute_indices_and_terrain.py after creating meta")
     args = parser.parse_args()
 
-    # Load AOI shapefile and get tiles
-    aoi_gdf, aoi_bounds = load_aoi_shapefile()
+    aoi_gdf = load_aoi_shapefile()
     tiles = get_tiles(aoi_gdf)
 
     s2_list = []
@@ -122,19 +124,24 @@ def main():
     print(f"🟦 Sentinel-2 TOTAL: {len(set([i.id for i in s2_list]))}")
     print(f"⬛ Sentinel-1 TOTAL: {len(set([i.id for i in s1_list]))}")
 
-    # Print acquisition dates for Sentinel-2
     print("\nSentinel-2 acquisition dates:")
     for item in s2_list:
-        date = getattr(item, 'datetime', None)
+        date = getattr(item, "datetime", None)
         if date:
             print(date)
 
-    # Print acquisition dates for Sentinel-1
     print("\nSentinel-1 acquisition dates:")
     for item in s1_list:
-        date = getattr(item, 'datetime', None)
+        date = getattr(item, "datetime", None)
         if date:
             print(date)
+
+    meta_out = write_meta(aoi_gdf, s2_list, s1_list, args.start, args.end, Path("data/raw"))
+
+    if args.run:
+        cmd = [sys.executable, "scripts/02_compute_indices_and_terrain.py", "--meta", str(meta_out), "--outdir", "data/processed"]
+        print("▶ Running 02_compute_indices_and_terrain.py...")
+        subprocess.check_call(cmd)
 
 
 if __name__ == "__main__":
