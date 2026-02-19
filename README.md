@@ -32,6 +32,17 @@ Source codes were written using Python 3.9 and use the following libraries and f
 
 ## Methodology
 
+This methodolgy is coming from 
+
+
 ## Scope and Limitations
 
-## About the Authors
+The scope of the code is limited yet within the bounds of the pilot site which are Bongabon, Nueva Ecija and a few of its neighboring municipalities. Replication of the code in other provinces is not yet available due to lack of ground validation points collected. 
+
+Furthermore, this rapid mapping of onion extents is precisely effective in detecting matured onions within its croping cycle. Onions during vegetative stages will most likely not be detected by the algorithm. 
+
+## About the Author
+
+The creation of this Onion Extent Detection algorithm is created by the Space Data Mobilization and Applications Division of the Philippine Space Agency. 
+
+For inquiries, kindly send an email at sdmad@philsa.gov.ph. 
