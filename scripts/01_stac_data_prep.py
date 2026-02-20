@@ -11,6 +11,21 @@ import argparse
 import json
 from pathlib import Path
 
+
+"""
+01_stac_data_prep.py
+
+Load AOI from `data/AOI/bongabon_aoi.shp`, search STAC for Sentinel-2 and Sentinel-1
+items that intersect the AOI and write a meta JSON usable by
+`scripts/02_compute_indices_and_terrain.py`.
+
+Optional `--run` will invoke `02_compute_indices_and_terrain.py` with the
+generated meta file.
+"""
+import argparse
+import json
+from pathlib import Path
+
 import geopandas as gpd
 from shapely.geometry import box, mapping
 from pystac_client import Client
@@ -124,17 +139,15 @@ def main():
     print(f"🟦 Sentinel-2 TOTAL: {len(set([i.id for i in s2_list]))}")
     print(f"⬛ Sentinel-1 TOTAL: {len(set([i.id for i in s1_list]))}")
 
-    print("\nSentinel-2 acquisition dates:")
-    for item in s2_list:
-        date = getattr(item, "datetime", None)
-        if date:
-            print(date)
+    def print_acquisition_dates(items, label):
+        print(f"\n{label} acquisition dates:")
+        for item in items:
+            date = getattr(item, "datetime", None)
+            if date:
+                print(date)
 
-    print("\nSentinel-1 acquisition dates:")
-    for item in s1_list:
-        date = getattr(item, "datetime", None)
-        if date:
-            print(date)
+    print_acquisition_dates(s2_list, "Sentinel-2")
+    print_acquisition_dates(s1_list, "Sentinel-1")
 
     meta_out = write_meta(aoi_gdf, s2_list, s1_list, args.start, args.end, Path("data/raw"))
 
