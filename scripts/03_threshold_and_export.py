@@ -22,7 +22,8 @@ def main(stack, out):
         arr = src.read().astype('float32')
 
     # bands ordering must match writing in script 02
-    # 1 B7_B8_B8A_Avg, 2 NDVI, 3 NDWI, 4 NDSI, 5 EVI, 6 NDRE, 7 SAVI, 8 GNDVI, 9 ClI, 10 Slope, 11 Roughness, 12 TPI, 13 VV, 14 VH, 15 ratio, 16 roads
+    # 1 B7_B8_B8A_Avg, 2 NDVI, 3 NDWI, 4 NDSI, 5 EVI, 6 NDRE, 7 SAVI,
+    # 8 GNDVI, 9 ClI, 10 Slope, 11 Roughness, 12 TPI, 13 VV, 14 VH, 15 ratio
 
     B7_B8_B8A_Avg = arr[0]
     NDVI = arr[1]
@@ -39,9 +40,8 @@ def main(stack, out):
     VV = arr[12]
     VH = arr[13]
     ratio = arr[14]
-    roads = arr[15]
 
-    # apply thresholds (from your GEE expression)
+    # apply thresholds (from your GEE expression) 
     mask = (
         (B7_B8_B8A_Avg >= 1857) & (B7_B8_B8A_Avg <= 3713) &
         (NDVI >= 0.38) & (NDVI <= 0.80) &
@@ -60,8 +60,8 @@ def main(stack, out):
         (ratio >= 0.36) & (ratio <= 1.18)
     )
 
-    # Optionally remove immediate road pixels (e.g., set to 0 if road is present)
-    mask = mask & (roads == 0)
+    # The composite from script 02 has been clipped/masked for crops and roads
+    # already. No additional rasterized road mask is required here.
 
     # create binary output
     binary = mask.astype('uint8')
