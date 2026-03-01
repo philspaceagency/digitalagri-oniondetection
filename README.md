@@ -37,7 +37,7 @@ This methodolgy is coming from
 
 ## Scope and Limitations
 
-The scope of the code is limited yet within the bounds of the pilot site which are Bongabon, Nueva Ecija and a few of its neighboring municipalities. Replication of the code in other provinces is not yet available due to lack of ground validation points collected. 
+The scope of the code is limited within the bounds of the pilot site which are Bongabon, Nueva Ecija and a few of its neighboring municipalities. Replication of the code in other provinces is not yet available due to lack of ground validation points collected. 
 
 Furthermore, this rapid mapping of onion extents is precisely effective in detecting matured onions within its croping cycle. Onions during vegetative stages will most likely not be detected by the algorithm. 
 
